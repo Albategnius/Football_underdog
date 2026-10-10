@@ -2,7 +2,7 @@
 
 Premier League fixtures ranked by the underdog's chance of winning outright, with weather-style warning levels.
 
-**Live page:** https://albategnius.github.io/football_underdog/
+**Live page:** https://albategnius.github.io/Football_underdog/
 
 | Warning | Underdog win chance | What happened in backtest (2,660 matches, 2019/20–2025/26) |
 |---|---|---|

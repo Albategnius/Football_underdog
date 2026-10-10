@@ -1,0 +1,313 @@
+<title>Upset Radar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=Public+Sans:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: a weather-warning bulletin for football. One narrow column, fixtures ranked by upset chance, evidence below. */
+:root {
+  --bg: #eef1ee; --surface: #ffffff; --ink: #14201a; --muted: #5b6b61; --line: #d4dbd5; --track: #e3e8e4;
+  --accent: #1e6a45; --red: #c3302a; --red-soft: #fbe7e5; --amber: #b86f00; --amber-soft: #fbefd9; --low: #6d8576; --low-soft: #e6ece8;
+  --fav: #9fb0a5; --draw: #c9d2cc;
+  --display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+  --body: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0e1511; --surface: #17201b; --ink: #e6eee8; --muted: #95a59b; --line: #2a362f; --track: #24302a;
+  --accent: #57bb89; --red: #f2675c; --red-soft: #3a1c1a; --amber: #f0b03c; --amber-soft: #382a12; --low: #86a090; --low-soft: #222d27;
+  --fav: #4f6157; --draw: #36443c; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0e1511; --surface: #17201b; --ink: #e6eee8; --muted: #95a59b; --line: #2a362f; --track: #24302a;
+  --accent: #57bb89; --red: #f2675c; --red-soft: #3a1c1a; --amber: #f0b03c; --amber-soft: #382a12; --low: #86a090; --low-soft: #222d27;
+  --fav: #4f6157; --draw: #36443c; color-scheme: dark }
+
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--ink); font: 400 1rem/1.55 var(--body); }
+.wrap { max-width: 46rem; margin: 0 auto; padding-inline: 1rem; padding-block: 1.5rem 3rem; display: grid; gap: 2.75rem }
+h1, h2 { font-family: var(--display); text-wrap: balance; margin: 0; letter-spacing: .01em }
+h2 { font-size: 2rem; font-weight: 800; line-height: 1; text-transform: uppercase }
+p { margin: 0 }
+.eyebrow { font: 600 .72rem/1.2 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted) }
+.lede { color: var(--muted); max-width: 38rem }
+.num { font-variant-numeric: tabular-nums }
+
+/* hero */
+.hero { display: grid; gap: 1rem }
+.hero h1 { font-size: clamp(3.6rem, 16vw, 6.5rem); font-weight: 900; line-height: .86; text-transform: uppercase }
+.hero h1 span { color: var(--red) }
+.thesis { display: grid; grid-template-columns: auto 1fr; gap: .25rem 1rem; align-items: center; padding-top: 1rem; border-top: 2px solid var(--ink) }
+.thesis b { font: 900 3.4rem/1 var(--display); grid-row: span 2 }
+.thesis p { font-weight: 600; line-height: 1.35 }
+.thesis small { color: var(--muted); font-size: .85rem; line-height: 1.4 }
+
+/* legend of warning levels */
+.levels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem }
+.lv { border-radius: 10px; padding: .7rem .75rem; display: grid; gap: .2rem; min-width: 0 }
+.lv.red { background: var(--red-soft) } .lv.amber { background: var(--amber-soft) } .lv.low { background: var(--low-soft) }
+.lv .tag { font: 600 .68rem/1 var(--mono); letter-spacing: .1em; text-transform: uppercase }
+.lv.red .tag { color: var(--red) } .lv.amber .tag { color: var(--amber) } .lv.low .tag { color: var(--low) }
+.lv strong { font: 800 1.6rem/1 var(--display) }
+.lv span { font-size: .78rem; color: var(--muted); line-height: 1.35 }
+
+/* tabs */
+.tabs { display: flex; gap: .4rem; flex-wrap: wrap }
+.tab { font: 600 .9rem/1 var(--body); padding: .6rem .95rem; border-radius: 999px; border: 1.5px solid var(--line); background: transparent; color: var(--ink); cursor: pointer }
+.tab[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink) }
+.tab:focus-visible, .chip-btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px }
+.note { font-size: .85rem; color: var(--muted) }
+
+/* fixture list */
+.list { display: grid; gap: .6rem; padding: 0; margin: 0; list-style: none }
+.fx { background: var(--surface); border-radius: 14px; padding: .9rem 1rem 1rem; display: grid; gap: .65rem; border: 1px solid var(--line) }
+.fx-top { display: flex; justify-content: space-between; align-items: center; gap: .5rem; flex-wrap: wrap }
+.chip { font: 600 .66rem/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; padding: .35rem .5rem; border-radius: 4px; display: inline-flex; align-items: center; gap: .35rem }
+.chip svg { width: .8rem; height: .8rem }
+.chip.red { background: var(--red); color: var(--surface) } .chip.amber { background: var(--amber); color: var(--surface) } .chip.low { background: var(--low-soft); color: var(--low) }
+.when { font: 500 .75rem/1 var(--mono); color: var(--muted) }
+.fx-main { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1rem; align-items: end }
+.teams { min-width: 0; display: grid; gap: .1rem }
+.dogname { font: 800 1.55rem/1.05 var(--display); text-transform: uppercase; overflow-wrap: anywhere }
+.vs { font-size: .85rem; color: var(--muted) }
+.vs b { color: var(--ink); font-weight: 600 }
+.pct { text-align: right }
+.pct b { font: 900 2.6rem/.9 var(--display); display: block }
+.pct span { font: 600 .62rem/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted) }
+.fx.red .pct b { color: var(--red) } .fx.amber .pct b { color: var(--amber) } .fx.low .pct b { color: var(--low) }
+.bar { display: flex; gap: 2px; height: 10px }
+.bar i { display: block; height: 100%; border-radius: 2px }
+.bar .f { background: var(--fav) } .bar .d { background: var(--draw) }
+.fx.red .bar .u { background: var(--red) } .fx.amber .bar .u { background: var(--amber) } .fx.low .bar .u { background: var(--low) }
+.barkey { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; font-size: .76rem; line-height: 1.3; color: var(--muted); margin-top: .35rem }
+.barkey span:nth-child(2) { text-align: center } .barkey span:nth-child(3) { text-align: right }
+.barkey b { color: var(--ink); font-weight: 600 }
+.fx-foot { font-size: .85rem; border-top: 1px dashed var(--line); padding-top: .6rem; display: flex; justify-content: space-between; gap: .4rem 1rem; flex-wrap: wrap }
+.fx-foot span { color: var(--muted) }
+.fx-foot b { font-family: var(--mono); font-weight: 600 }
+
+/* shocks tables */
+.shocks { display: grid; gap: .5rem }
+.shock { display: grid; grid-template-columns: 3.6rem minmax(0, 1fr); gap: .9rem; align-items: center; padding: .65rem 0; border-bottom: 1px solid var(--line) }
+.shock:last-child { border-bottom: 0 }
+.shock .p { font: 900 1.7rem/1 var(--display); color: var(--red); text-align: right }
+.shock .t { min-width: 0 }
+.shock .t div { font-weight: 600; line-height: 1.3 }
+.shock .t small { color: var(--muted); font-size: .8rem }
+.score { font-family: var(--mono); font-weight: 600; padding: 0 .3rem }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: .4rem 1rem }
+.split { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: 1.25rem }
+.split > div { display: grid; gap: .6rem; align-content: start; min-width: 0 }
+h3 { font: 700 .95rem/1.3 var(--body); margin: 0 }
+
+/* evidence */
+.evidence { display: grid; gap: 1rem }
+.chart { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 1rem; position: relative }
+.chart svg { width: 100%; height: auto; display: block; overflow: visible }
+.chart text { font: 500 12.5px var(--mono); fill: var(--muted) }
+.tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--bg); font-size: .78rem; line-height: 1.35; padding: .45rem .6rem; border-radius: 6px; max-width: 14rem }
+.tbl-wrap { overflow-x: auto }
+table { border-collapse: collapse; width: 100%; font-size: .88rem }
+th, td { text-align: right; padding: .5rem .6rem; border-bottom: 1px solid var(--line); white-space: nowrap }
+th:first-child, td:first-child { text-align: left }
+th { font: 600 .68rem/1.2 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted) }
+td { font-variant-numeric: tabular-nums }
+.dot { display: inline-block; width: .6rem; height: .6rem; border-radius: 2px; margin-right: .4rem; vertical-align: 0 }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: .5rem }
+.stat { border-top: 2px solid var(--ink); padding-top: .5rem; display: grid; gap: .15rem }
+.stat b { font: 800 1.9rem/1 var(--display) }
+.stat span { font-size: .8rem; color: var(--muted); line-height: 1.35 }
+.method { display: grid; gap: .7rem; font-size: .93rem; max-width: 40rem }
+.method ul { margin: 0; padding-left: 1.1rem; display: grid; gap: .4rem }
+a { color: var(--accent) }
+footer { font-size: .8rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: 1rem; display: grid; gap: .3rem }
+@media (max-width: 30rem) {
+  .levels { grid-template-columns: 1fr } .lv { grid-template-columns: auto 1fr; align-items: center; column-gap: .75rem }
+  .lv .tag { grid-column: 1 / -1 } .lv strong { font-size: 1.4rem }
+}
+@media (prefers-reduced-motion: no-preference) { .fx { transition: transform .15s } .fx:hover { transform: translateY(-1px) } }
+</style>
+
+<div class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Premier League 2026/27 · results through 20 Sep</div>
+    <h1>Upset<br><span>Radar</span></h1>
+    <p class="lede">Most predictors tell you who will win. This one asks the more interesting question: where could the favourite slip? Every fixture gets a warning level for the underdog winning outright.</p>
+    <div class="thesis">
+      <b class="num" id="t-big">1 in 4</b>
+      <p id="t-line"></p>
+      <small id="t-sub"></small>
+    </div>
+  </header>
+
+  <section style="display:grid;gap:1rem" aria-labelledby="h-radar">
+    <div style="display:grid;gap:.4rem">
+      <div class="eyebrow">This week's warnings</div>
+      <h2 id="h-radar">The radar</h2>
+    </div>
+    <div class="levels" id="levels"></div>
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <p class="note" id="tabnote"></p>
+    <ol class="list" id="list"></ol>
+  </section>
+
+  <section style="display:grid;gap:1rem" aria-labelledby="h-shocks">
+    <div style="display:grid;gap:.4rem">
+      <div class="eyebrow">Measured with pre-match odds</div>
+      <h2 id="h-shocks">Biggest shocks</h2>
+    </div>
+    <div class="split">
+      <div><h3>2026/27 so far</h3><div class="panel shocks" id="shock-cur"></div><p class="note" id="cur-note"></p></div>
+      <div><h3>Since 2019/20</h3><div class="panel shocks" id="shock-hist"></div></div>
+    </div>
+  </section>
+
+  <section class="evidence" aria-labelledby="h-ev">
+    <div style="display:grid;gap:.4rem">
+      <div class="eyebrow">Tested on <span id="ev-n"></span> past matches</div>
+      <h2 id="h-ev">Does the radar work?</h2>
+    </div>
+    <p class="lede">Each past match was predicted using only data from before that week, then checked against the result. If the radar is honest, games it calls 30% upsets should end in upsets about 30% of the time.</p>
+    <div class="chart" id="cal-wrap">
+      <h3 style="margin-bottom:.5rem">Predicted upset chance vs what happened</h3>
+      <svg id="cal" viewBox="0 0 400 290" role="img" aria-label="Calibration chart of predicted versus actual underdog win rate"></svg>
+      <div class="tip" id="tip" hidden></div>
+      <p class="note" style="margin-top:.4rem">Each dot is a group of matches. Dots near the dashed line mean the chances were right. Dot size shows how many matches.</p>
+    </div>
+    <div class="tbl-wrap panel" style="padding:.2rem .4rem">
+      <table>
+        <thead><tr><th>Warning level</th><th>Matches</th><th>Underdog won</th><th>Draw</th><th>Favourite won</th></tr></thead>
+        <tbody id="lvtbl"></tbody>
+      </table>
+    </div>
+    <div class="stats" id="stats"></div>
+  </section>
+
+  <section class="method" aria-labelledby="h-m">
+    <div class="eyebrow">Under the hood</div>
+    <h2 id="h-m">How it works</h2>
+    <ul>
+      <li>A Dixon–Coles goals model: each team gets an attack and a defence rating, plus a home advantage. Those ratings give expected goals for both sides and a probability for every scoreline.</li>
+      <li>Trained on 11 Premier League seasons (2015/16 onwards). Recent matches count more: a result from a year ago carries half the weight of last weekend's.</li>
+      <li>Newly promoted clubs start with a measured "promoted team" penalty, then earn their own rating as results come in.</li>
+      <li>The <b>underdog</b> is the side with the lower win probability. An <b>upset</b> means the underdog wins outright. Draws are shown separately.</li>
+      <li>Goals only. No shots, injuries, line-ups or betting odds, so it can't know about a missing striker or a manager sacking.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <span>Fixtures and results: <a href="https://github.com/openfootball/football.json" target="_blank" rel="noopener">openfootball</a>. Model and backtest run on 10 Oct 2026.</span>
+    <span>For information and fun, not betting advice.</span>
+  </footer>
+</div>
+
+<script>
+const D = __DATA__;
+const pc = (x, d = 0) => (x * 100).toFixed(d) + '%';
+const level = p => p >= .33 ? 'red' : p >= .25 ? 'amber' : 'low';
+const LV = { red: 'Red warning', amber: 'Amber warning', low: 'Low risk' };
+const ICON = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5 15 14H1z" fill="currentColor" opacity=".35"/><path d="M8 5.5v4M8 11.4v.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+const fmtDate = (d, t) => { const x = new Date(d + 'T12:00:00Z'); return x.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }) + (t ? ' · ' + t + ' UK' : ''); };
+const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+// hero
+const fav = D.fav;
+document.getElementById('t-line').textContent = `Premier League matches end with the underdog winning.`;
+document.getElementById('t-sub').textContent = `${pc(fav.dog)} of ${D.n_hist.toLocaleString('en-GB')} matches since 2019/20. The favourite won ${pc(fav.fav)}; ${pc(fav.draw)} were draws.`;
+
+// levels legend
+const L = D.levels;
+document.getElementById('levels').innerHTML = [
+  ['red', '33%+', `Underdog won ${pc(L.red.dog)} of these, the favourite ${pc(L.red.fav)}. A coin toss.`],
+  ['amber', '25–33%', `Underdog won ${pc(L.amber.dog)} of these.`],
+  ['low', 'under 25%', `Underdog won ${pc(L.low.dog)} of these.`]
+].map(([k, r, t]) => `<div class="lv ${k}"><span class="tag">${LV[k]}</span><strong>${r}</strong><span>${t}</span></div>`).join('');
+
+// radar
+const rounds = [...new Set(D.upcoming.map(m => m.round))];
+const tabs = document.getElementById('tabs');
+function renderRound(rd) {
+  [...tabs.children].forEach(b => b.setAttribute('aria-selected', b.dataset.r === rd));
+  const ms = D.upcoming.filter(m => m.round === rd).sort((a, b) => b.pdog - a.pdog);
+  const ds = ms.map(m => m.date).sort();
+  const reds = ms.filter(m => level(m.pdog) === 'red').length;
+  const later = rd !== rounds[0];
+  document.getElementById('tabnote').textContent =
+    `${fmtDate(ds[0])} to ${fmtDate(ds[ds.length - 1])}. ${reds} red warning${reds === 1 ? '' : 's'}, ranked by upset chance.` +
+    (later ? ' These will shift once the previous round\'s results are in.' : '');
+  document.getElementById('list').innerHTML = ms.map(m => {
+    const lv = level(m.pdog), favHome = m.fav === m.home;
+    const pf = m.pfav, pdw = m.pd, pu = m.pdog;
+    const s = m.upset_score; const sc = `${m.home} ${s[0]}–${s[1]} ${m.away}`;
+    const xf = favHome ? m.xh : m.xa, xu = favHome ? m.xa : m.xh;
+    return `<li class="fx ${lv}">
+      <div class="fx-top"><span class="chip ${lv}">${lv === 'low' ? '' : ICON}${LV[lv]}</span><span class="when">${fmtDate(m.date, m.time)}</span></div>
+      <div class="fx-main">
+        <div class="teams"><span class="eyebrow">Underdog · ${favHome ? 'away' : 'at home'}</span><div class="dogname">${esc(m.dog)}</div>
+          <div class="vs">${favHome ? 'at' : 'vs'} <b>${esc(m.fav)}</b> (favourite)</div></div>
+        <div class="pct"><b class="num">${pc(pu)}</b><span>upset chance</span></div>
+      </div>
+      <div>
+        <div class="bar" aria-hidden="true"><i class="f" style="flex:${pf}"></i><i class="d" style="flex:${pdw}"></i><i class="u" style="flex:${pu}"></i></div>
+        <div class="barkey num"><span>${esc(m.fav)} win <b>${pc(pf)}</b></span><span>Draw <b>${pc(pdw)}</b></span><span>${esc(m.dog)} win <b>${pc(pu)}</b></span></div>
+      </div>
+      <div class="fx-foot"><span>If the upset comes: most likely <b>${esc(sc)}</b></span><span class="num">xG ${esc(m.home)} ${m.xh.toFixed(1)}–${m.xa.toFixed(1)}</span></div>
+    </li>`;
+  }).join('');
+}
+tabs.innerHTML = rounds.map(r => `<button class="tab" role="tab" data-r="${esc(r)}">${esc(r)}</button>`).join('');
+tabs.addEventListener('click', e => { const b = e.target.closest('.tab'); if (b) { renderRound(b.dataset.r); try { localStorage.setItem('ur-round', b.dataset.r) } catch (_) {} } });
+let start = rounds[0]; try { const s = localStorage.getItem('ur-round'); if (rounds.includes(s)) start = s } catch (_) {}
+renderRound(start);
+
+// shocks
+const shockRow = r => `<div class="shock"><div class="p num">${pc(r.pdog)}</div><div class="t"><div>${esc(r.home)}<span class="score">${r.hg}–${r.ag}</span>${esc(r.away)}</div><small>${fmtDate(r.date)} ${r.date.slice(0, 4)} · ${esc(r.dog)}'s pre-match win chance</small></div></div>`;
+const curUps = D.cur.filter(r => r.res === 'dog').sort((a, b) => a.pdog - b.pdog).slice(0, 5);
+document.getElementById('shock-cur').innerHTML = curUps.map(shockRow).join('');
+document.getElementById('shock-hist').innerHTML = D.big_hist.slice(0, 5).map(shockRow).join('');
+const cs = D.cur_summary;
+document.getElementById('cur-note').textContent = `A calm start: ${cs.dog} upsets in ${cs.fav + cs.draw + cs.dog} matches, where the model expected about ${Math.round(D.cur_expected_dog)}.`;
+
+// calibration chart
+document.getElementById('ev-n').textContent = D.n_hist.toLocaleString('en-GB');
+(function () {
+  const svg = document.getElementById('cal'), W = 400, H = 290, m = { l: 46, r: 12, t: 12, b: 44 };
+  const max = .45, x = v => m.l + v / max * (W - m.l - m.r), y = v => H - m.b - v / max * (H - m.t - m.b);
+  let s = '';
+  [0, .1, .2, .3, .4].forEach(v => {
+    s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/>`;
+    s += `<text x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end">${v * 100}%</text>`;
+    s += `<text x="${x(v)}" y="${H - m.b + 18}" text-anchor="middle">${v * 100}%</text>`;
+  });
+  s += `<text x="${(m.l + W - m.r) / 2}" y="${H - 4}" text-anchor="middle">Predicted underdog win chance</text>`;
+  s += `<text transform="translate(11 ${(m.t + H - m.b) / 2}) rotate(-90)" text-anchor="middle">Actually won</text>`;
+  s += `<line x1="${x(0)}" y1="${y(0)}" x2="${x(max)}" y2="${y(max)}" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5 5"/>`;
+  const nmax = Math.max(...D.cal.map(c => c.n));
+  D.cal.forEach((c, i) => {
+    const r = 5 + 7 * Math.sqrt(c.n / nmax), lv = level(c.pred);
+    s += `<g class="pt" data-i="${i}"><circle cx="${x(c.pred)}" cy="${y(c.act)}" r="${r + 10}" fill="transparent"/>` +
+      `<circle cx="${x(c.pred)}" cy="${y(c.act)}" r="${r}" fill="var(--${lv})" stroke="var(--surface)" stroke-width="2"/></g>`;
+  });
+  svg.innerHTML = s;
+  const tip = document.getElementById('tip'), wrap = document.getElementById('cal-wrap');
+  svg.addEventListener('pointermove', e => {
+    const g = e.target.closest('.pt'); if (!g) { tip.hidden = true; return; }
+    const c = D.cal[+g.dataset.i];
+    const lab = c.hi >= 1 ? `${c.lo * 100}%+` : `${c.lo * 100}–${c.hi * 100}%`;
+    tip.innerHTML = `<b>Predicted ${lab}</b><br>${c.n} matches<br>Average prediction ${pc(c.pred, 1)}<br>Underdog actually won ${pc(c.act, 1)}`;
+    const b = wrap.getBoundingClientRect(); tip.hidden = false;
+    tip.style.left = Math.max(8, Math.min(e.clientX - b.left + 12, b.width - 230)) + 'px'; tip.style.top = (e.clientY - b.top - 70) + 'px';
+  });
+  svg.addEventListener('pointerleave', () => tip.hidden = true);
+})();
+
+document.getElementById('lvtbl').innerHTML = ['red', 'amber', 'low'].map(k => {
+  const v = L[k];
+  return `<tr><td><span class="dot" style="background:var(--${k})"></span>${LV[k]}</td><td>${v.n.toLocaleString('en-GB')} <span style="color:var(--muted)">(${pc(v.share)})</span></td><td><b>${pc(v.dog)}</b></td><td>${pc(v.draw)}</td><td>${pc(v.fav)}</td></tr>`;
+}).join('');
+
+const M = D.metrics_hist;
+document.getElementById('stats').innerHTML = [
+  [pc(M.acc), 'result called right (favourite wins). Always picking the home side: ' + pc(D.base.home) + '.'],
+  [M.rps.toFixed(3), 'ranked probability score, lower is better. Using league-average odds every game: ' + D.rps_base.toFixed(3) + '.'],
+  [pc(L.red.share), 'of matches get a red warning, roughly one or two per round.']
+].map(([b, t]) => `<div class="stat"><b class="num">${b}</b><span>${t}</span></div>`).join('');
+</script>

@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Premier League fixtures ranked by the underdog's chance of winning, backtested on 2,660 matches.">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Upset Radar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=Public+Sans:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: a weather-warning bulletin for football. One narrow column, fixtures ranked by upset chance, evidence below. */
+:root {
+  --bg: #eef1ee; --surface: #ffffff; --ink: #14201a; --muted: #5b6b61; --line: #d4dbd5; --track: #e3e8e4;
+  --accent: #1e6a45; --red: #c3302a; --red-soft: #fbe7e5; --amber: #b86f00; --amber-soft: #fbefd9; --low: #6d8576; --low-soft: #e6ece8;
+  --fav: #9fb0a5; --draw: #c9d2cc;
+  --display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+  --body: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0e1511; --surface: #17201b; --ink: #e6eee8; --muted: #95a59b; --line: #2a362f; --track: #24302a;
+  --accent: #57bb89; --red: #f2675c; --red-soft: #3a1c1a; --amber: #f0b03c; --amber-soft: #382a12; --low: #86a090; --low-soft: #222d27;
+  --fav: #4f6157; --draw: #36443c; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0e1511; --surface: #17201b; --ink: #e6eee8; --muted: #95a59b; --line: #2a362f; --track: #24302a;
+  --accent: #57bb89; --red: #f2675c; --red-soft: #3a1c1a; --amber: #f0b03c; --amber-soft: #382a12; --low: #86a090; --low-soft: #222d27;
+  --fav: #4f6157; --draw: #36443c; color-scheme: dark }
+
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--ink); font: 400 1rem/1.55 var(--body); }
+.wrap { max-width: 46rem; margin: 0 auto; padding-inline: 1rem; padding-block: 1.5rem 3rem; display: grid; gap: 2.75rem }
+h1, h2 { font-family: var(--display); text-wrap: balance; margin: 0; letter-spacing: .01em }
+h2 { font-size: 2rem; font-weight: 800; line-height: 1; text-transform: uppercase }
+p { margin: 0 }
+.eyebrow { font: 600 .72rem/1.2 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted) }
+.lede { color: var(--muted); max-width: 38rem }
+.num { font-variant-numeric: tabular-nums }
+
+/* hero */
+.hero { display: grid; gap: 1rem }
+.hero h1 { font-size: clamp(3.6rem, 16vw, 6.5rem); font-weight: 900; line-height: .86; text-transform: uppercase }
+.hero h1 span { color: var(--red) }
+.thesis { display: grid; grid-template-columns: auto 1fr; gap: .25rem 1rem; align-items: center; padding-top: 1rem; border-top: 2px solid var(--ink) }
+.thesis b { font: 900 3.4rem/1 var(--display); grid-row: span 2 }
+.thesis p { font-weight: 600; line-height: 1.35 }
+.thesis small { color: var(--muted); font-size: .85rem; line-height: 1.4 }
+
+/* legend of warning levels */
+.levels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem }
+.lv { border-radius: 10px; padding: .7rem .75rem; display: grid; gap: .2rem; min-width: 0 }
+.lv.red { background: var(--red-soft) } .lv.amber { background: var(--amber-soft) } .lv.low { background: var(--low-soft) }
+.lv .tag { font: 600 .68rem/1 var(--mono); letter-spacing: .1em; text-transform: uppercase }
+.lv.red .tag { color: var(--red) } .lv.amber .tag { color: var(--amber) } .lv.low .tag { color: var(--low) }
+.lv strong { font: 800 1.6rem/1 var(--display) }
+.lv span { font-size: .78rem; color: var(--muted); line-height: 1.35 }
+
+/* tabs */
+.tabs { display: flex; gap: .4rem; flex-wrap: wrap }
+.tab { font: 600 .9rem/1 var(--body); padding: .6rem .95rem; border-radius: 999px; border: 1.5px solid var(--line); background: transparent; color: var(--ink); cursor: pointer }
+.tab[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink) }
+.tab:focus-visible, .chip-btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px }
+.note { font-size: .85rem; color: var(--muted) }
+
+/* fixture list */
+.list { display: grid; gap: .6rem; padding: 0; margin: 0; list-style: none }
+.fx { background: var(--surface); border-radius: 14px; padding: .9rem 1rem 1rem; display: grid; gap: .65rem; border: 1px solid var(--line) }
+.fx-top { display: flex; justify-content: space-between; align-items: center; gap: .5rem; flex-wrap: wrap }
+.chip { font: 600 .66rem/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; padding: .35rem .5rem; border-radius: 4px; display: inline-flex; align-items: center; gap: .35rem }
+.chip svg { width: .8rem; height: .8rem }
+.chip.red { background: var(--red); color: var(--surface) } .chip.amber { background: var(--amber); color: var(--surface) } .chip.low { background: var(--low-soft); color: var(--low) }
+.when { font: 500 .75rem/1 var(--mono); color: var(--muted) }
+.fx-main { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1rem; align-items: end }
+.teams { min-width: 0; display: grid; gap: .1rem }
+.dogname { font: 800 1.55rem/1.05 var(--display); text-transform: uppercase; overflow-wrap: anywhere }
+.vs { font-size: .85rem; color: var(--muted) }
+.vs b { color: var(--ink); font-weight: 600 }
+.pct { text-align: right }
+.pct b { font: 900 2.6rem/.9 var(--display); display: block }
+.pct span { font: 600 .62rem/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted) }
+.fx.red .pct b { color: var(--red) } .fx.amber .pct b { color: var(--amber) } .fx.low .pct b { color: var(--low) }
+.bar { display: flex; gap: 2px; height: 10px }
+.bar i { display: block; height: 100%; border-radius: 2px }
+.bar .f { background: var(--fav) } .bar .d { background: var(--draw) }
+.fx.red .bar .u { background: var(--red) } .fx.amber .bar .u { background: var(--amber) } .fx.low .bar .u { background: var(--low) }
+.barkey { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; font-size: .76rem; line-height: 1.3; color: var(--muted); margin-top: .35rem }
+.barkey span:nth-child(2) { text-align: center } .barkey span:nth-child(3) { text-align: right }
+.barkey b { color: var(--ink); font-weight: 600 }
+.fx-foot { font-size: .85rem; border-top: 1px dashed var(--line); padding-top: .6rem; display: flex; justify-content: space-between; gap: .4rem 1rem; flex-wrap: wrap }
+.fx-foot span { color: var(--muted) }
+.fx-foot b { font-family: var(--mono); font-weight: 600 }
+
+/* shocks tables */
+.shocks { display: grid; gap: .5rem }
+.shock { display: grid; grid-template-columns: 3.6rem minmax(0, 1fr); gap: .9rem; align-items: center; padding: .65rem 0; border-bottom: 1px solid var(--line) }
+.shock:last-child { border-bottom: 0 }
+.shock .p { font: 900 1.7rem/1 var(--display); color: var(--red); text-align: right }
+.shock .t { min-width: 0 }
+.shock .t div { font-weight: 600; line-height: 1.3 }
+.shock .t small { color: var(--muted); font-size: .8rem }
+.score { font-family: var(--mono); font-weight: 600; padding: 0 .3rem }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: .4rem 1rem }
+.split { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: 1.25rem }
+.split > div { display: grid; gap: .6rem; align-content: start; min-width: 0 }
+h3 { font: 700 .95rem/1.3 var(--body); margin: 0 }
+
+/* evidence */
+.evidence { display: grid; gap: 1rem }
+.chart { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 1rem; position: relative }
+.chart svg { width: 100%; height: auto; display: block; overflow: visible }
+.chart text { font: 500 12.5px var(--mono); fill: var(--muted) }
+.tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--bg); font-size: .78rem; line-height: 1.35; padding: .45rem .6rem; border-radius: 6px; max-width: 14rem }
+.tbl-wrap { overflow-x: auto }
+table { border-collapse: collapse; width: 100%; font-size: .88rem }
+th, td { text-align: right; padding: .5rem .6rem; border-bottom: 1px solid var(--line); white-space: nowrap }
+th:first-child, td:first-child { text-align: left }
+th { font: 600 .68rem/1.2 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted) }
+td { font-variant-numeric: tabular-nums }
+.dot { display: inline-block; width: .6rem; height: .6rem; border-radius: 2px; margin-right: .4rem; vertical-align: 0 }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: .5rem }
+.stat { border-top: 2px solid var(--ink); padding-top: .5rem; display: grid; gap: .15rem }
+.stat b { font: 800 1.9rem/1 var(--display) }
+.stat span { font-size: .8rem; color: var(--muted); line-height: 1.35 }
+.method { display: grid; gap: .7rem; font-size: .93rem; max-width: 40rem }
+.method ul { margin: 0; padding-left: 1.1rem; display: grid; gap: .4rem }
+a { color: var(--accent) }
+footer { font-size: .8rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: 1rem; display: grid; gap: .3rem }
+@media (max-width: 30rem) {
+  .levels { grid-template-columns: 1fr } .lv { grid-template-columns: auto 1fr; align-items: center; column-gap: .75rem }
+  .lv .tag { grid-column: 1 / -1 } .lv strong { font-size: 1.4rem }
+}
+@media (prefers-reduced-motion: no-preference) { .fx { transition: transform .15s } .fx:hover { transform: translateY(-1px) } }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Premier League 2026/27 · results through 20 Sep</div>
+    <h1>Upset<br><span>Radar</span></h1>
+    <p class="lede">Most predictors tell you who will win. This one asks the more interesting question: where could the favourite slip? Every fixture gets a warning level for the underdog winning outright.</p>
+    <div class="thesis">
+      <b class="num" id="t-big">1 in 4</b>
+      <p id="t-line"></p>
+      <small id="t-sub"></small>
+    </div>
+  </header>
+
+  <section style="display:grid;gap:1rem" aria-labelledby="h-radar">
+    <div style="display:grid;gap:.4rem">
+      <div class="eyebrow">This week's warnings</div>
+      <h2 id="h-radar">The radar</h2>
+    </div>
+    <div class="levels" id="levels"></div>
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <p class="note" id="tabnote"></p>
+    <ol class="list" id="list"></ol>
+  </section>
+
+  <section style="display:grid;gap:1rem" aria-labelledby="h-shocks">
+    <div style="display:grid;gap:.4rem">
+      <div class="eyebrow">Measured with pre-match odds</div>
+      <h2 id="h-shocks">Biggest shocks</h2>
+    </div>
+    <div class="split">
+      <div><h3>2026/27 so far</h3><div class="panel shocks" id="shock-cur"></div><p class="note" id="cur-note"></p></div>
+      <div><h3>Since 2019/20</h3><div class="panel shocks" id="shock-hist"></div></div>
+    </div>
+  </section>
+
+  <section class="evidence" aria-labelledby="h-ev">
+    <div style="display:grid;gap:.4rem">
+      <div class="eyebrow">Tested on <span id="ev-n"></span> past matches</div>
+      <h2 id="h-ev">Does the radar work?</h2>
+    </div>
+    <p class="lede">Each past match was predicted using only data from before that week, then checked against the result. If the radar is honest, games it calls 30% upsets should end in upsets about 30% of the time.</p>
+    <div class="chart" id="cal-wrap">
+      <h3 style="margin-bottom:.5rem">Predicted upset chance vs what happened</h3>
+      <svg id="cal" viewBox="0 0 400 290" role="img" aria-label="Calibration chart of predicted versus actual underdog win rate"></svg>
+      <div class="tip" id="tip" hidden></div>
+      <p class="note" style="margin-top:.4rem">Each dot is a group of matches. Dots near the dashed line mean the chances were right. Dot size shows how many matches.</p>
+    </div>
+    <div class="tbl-wrap panel" style="padding:.2rem .4rem">
+      <table>
+        <thead><tr><th>Warning level</th><th>Matches</th><th>Underdog won</th><th>Draw</th><th>Favourite won</th></tr></thead>
+        <tbody id="lvtbl"></tbody>
+      </table>
+    </div>
+    <div class="stats" id="stats"></div>
+  </section>
+
+  <section class="method" aria-labelledby="h-m">
+    <div class="eyebrow">Under the hood</div>
+    <h2 id="h-m">How it works</h2>
+    <ul>
+      <li>A Dixon–Coles goals model: each team gets an attack and a defence rating, plus a home advantage. Those ratings give expected goals for both sides and a probability for every scoreline.</li>
+      <li>Trained on 11 Premier League seasons (2015/16 onwards). Recent matches count more: a result from a year ago carries half the weight of last weekend's.</li>
+      <li>Newly promoted clubs start with a measured "promoted team" penalty, then earn their own rating as results come in.</li>
+      <li>The <b>underdog</b> is the side with the lower win probability. An <b>upset</b> means the underdog wins outright. Draws are shown separately.</li>
+      <li>Goals only. No shots, injuries, line-ups or betting odds, so it can't know about a missing striker or a manager sacking.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <span>Fixtures and results: <a href="https://github.com/openfootball/football.json" target="_blank" rel="noopener">openfootball</a>. Model and backtest run on 10 Oct 2026.</span>
+    <span>For information and fun, not betting advice.</span>
+  </footer>
+</div>
+
+<script>
+const D = {"n_hist":2660,"metrics_hist":{"logloss":0.9843,"rps":0.2034,"acc":0.5226},"base":{"home":0.4342,"draw":0.2365,"away":0.3293},"rps_base":0.2333,"fav":{"fav":0.5229,"draw":0.2365,"dog":0.2406},"cal":[{"lo":0,"hi":0.15,"n":567,"pred":0.1022,"act":0.1129},{"lo":0.15,"hi":0.2,"n":398,"pred":0.1755,"act":0.1608},{"lo":0.2,"hi":0.25,"n":461,"pred":0.2258,"act":0.2364},{"lo":0.25,"hi":0.3,"n":546,"pred":0.2752,"act":0.3095},{"lo":0.3,"hi":0.35,"n":520,"pred":0.3241,"act":0.3135},{"lo":0.35,"hi":1,"n":168,"pred":0.361,"act":0.4226}],"levels":{"red":{"n":363,"share":0.1365,"dog":0.3774,"draw":0.2397,"fav":0.3829,"pred":0.3496},"amber":{"n":871,"share":0.3274,"dog":0.3054,"draw":0.2698,"fav":0.4248,"pred":0.29},"low":{"n":1426,"share":0.5361,"dog":0.1662,"draw":0.2153,"fav":0.6185,"pred":0.1626}},"cur_summary":{"fav":26,"draw":16,"dog":8},"cur_expected_dog":12.1159,"upcoming":[{"season":"2026-27","date":"2026-10-10","home":"Arsenal","away":"Leeds","ph":0.5795,"pd":0.2542,"pa":0.1663,"xh":1.7391,"xa":0.8302,"fav":"Arsenal","dog":"Leeds","pdog":0.1663,"pfav":0.5795,"round":"Matchday 6","time":"12:30","upset_score":[0,1],"p_upset_score":0.0535,"p_dog_nolose":0.4205},{"season":"2026-27","date":"2026-10-10","home":"Sunderland","away":"Brighton","ph":0.3921,"pd":0.2755,"pa":0.3324,"xh":1.4515,"xa":1.3203,"fav":"Sunderland","dog":"Brighton","pdog":0.3324,"pfav":0.3921,"round":"Matchday 6","time":"15:00","upset_score":[1,2],"p_upset_score":0.0791,"p_dog_nolose":0.6079},{"season":"2026-27","date":"2026-10-10","home":"Chelsea","away":"Bournemouth","ph":0.4471,"pd":0.255,"pa":0.2979,"xh":1.7146,"xa":1.3698,"fav":"Chelsea","dog":"Bournemouth","pdog":0.2979,"pfav":0.4471,"round":"Matchday 6","time":"15:00","upset_score":[1,2],"p_upset_score":0.0736,"p_dog_nolose":0.5529},{"season":"2026-27","date":"2026-10-10","home":"Ipswich","away":"Fulham","ph":0.2343,"pd":0.253,"pa":0.5128,"xh":1.1444,"xa":1.7806,"fav":"Fulham","dog":"Ipswich","pdog":0.2343,"pfav":0.5128,"round":"Matchday 6","time":"15:00","upset_score":[2,1],"p_upset_score":0.0626,"p_dog_nolose":0.4872},{"season":"2026-27","date":"2026-10-10","home":"Aston Villa","away":"Brentford","ph":0.4059,"pd":0.2652,"pa":0.3289,"xh":1.56,"xa":1.3861,"fav":"Aston Villa","dog":"Brentford","pdog":0.3289,"pfav":0.4059,"round":"Matchday 6","time":"15:00","upset_score":[1,2],"p_upset_score":0.0787,"p_dog_nolose":0.5941},{"season":"2026-27","date":"2026-10-10","home":"Man United","away":"Tottenham","ph":0.5369,"pd":0.2386,"pa":0.2245,"xh":1.9395,"xa":1.1996,"fav":"Man United","dog":"Tottenham","pdog":0.2245,"pfav":0.5369,"round":"Matchday 6","time":"17:30","upset_score":[1,2],"p_upset_score":0.0605,"p_dog_nolose":0.4631},{"season":"2026-27","date":"2026-10-11","home":"Hull","away":"Everton","ph":0.4207,"pd":0.3391,"pa":0.2402,"xh":1.1002,"xa":0.7636,"fav":"Hull","dog":"Everton","pdog":0.2402,"pfav":0.4207,"round":"Matchday 6","time":"14:00","upset_score":[0,1],"p_upset_score":0.1066,"p_dog_nolose":0.5793},{"season":"2026-27","date":"2026-10-11","home":"Crystal Palace","away":"Nott'm Forest","ph":0.358,"pd":0.2953,"pa":0.3466,"xh":1.2475,"xa":1.2237,"fav":"Crystal Palace","dog":"Nott'm Forest","pdog":0.3466,"pfav":0.358,"round":"Matchday 6","time":"14:00","upset_score":[0,1],"p_upset_score":0.0917,"p_dog_nolose":0.642},{"season":"2026-27","date":"2026-10-11","home":"Liverpool","away":"Man City","ph":0.3144,"pd":0.2582,"pa":0.4274,"xh":1.3974,"xa":1.6572,"fav":"Man City","dog":"Liverpool","pdog":0.3144,"pfav":0.4274,"round":"Matchday 6","time":"16:30","upset_score":[2,1],"p_upset_score":0.0763,"p_dog_nolose":0.5726},{"season":"2026-27","date":"2026-10-12","home":"Coventry","away":"Newcastle","ph":0.1191,"pd":0.2391,"pa":0.6418,"xh":0.6487,"xa":1.8007,"fav":"Newcastle","dog":"Coventry","pdog":0.1191,"pfav":0.6418,"round":"Matchday 6","time":"20:00","upset_score":[1,0],"p_upset_score":0.0468,"p_dog_nolose":0.3582},{"season":"2026-27","date":"2026-10-17","home":"Everton","away":"Chelsea","ph":0.3544,"pd":0.29,"pa":0.3557,"xh":1.2737,"xa":1.2765,"fav":"Chelsea","dog":"Everton","pdog":0.3544,"pfav":0.3557,"round":"Matchday 7","time":"12:30","upset_score":[1,0],"p_upset_score":0.0879,"p_dog_nolose":0.6443},{"season":"2026-27","date":"2026-10-17","home":"Fulham","away":"Hull","ph":0.3264,"pd":0.3275,"pa":0.3461,"xh":1.0112,"xa":1.0494,"fav":"Hull","dog":"Fulham","pdog":0.3264,"pfav":0.3461,"round":"Matchday 7","time":"15:00","upset_score":[1,0],"p_upset_score":0.1165,"p_dog_nolose":0.6539},{"season":"2026-27","date":"2026-10-17","home":"Man City","away":"Ipswich","ph":0.8646,"pd":0.0955,"pa":0.0399,"xh":3.3772,"xa":0.7029,"fav":"Man City","dog":"Ipswich","pdog":0.0399,"pfav":0.8646,"round":"Matchday 7","time":"15:00","upset_score":[1,2],"p_upset_score":0.0141,"p_dog_nolose":0.1354},{"season":"2026-27","date":"2026-10-17","home":"Brentford","away":"Liverpool","ph":0.3468,"pd":0.2585,"pa":0.3947,"xh":1.4879,"xa":1.5981,"fav":"Liverpool","dog":"Brentford","pdog":0.3468,"pfav":0.3947,"round":"Matchday 7","time":"15:00","upset_score":[2,1],"p_upset_score":0.0808,"p_dog_nolose":0.6053},{"season":"2026-27","date":"2026-10-17","home":"Newcastle","away":"Aston Villa","ph":0.4525,"pd":0.2515,"pa":0.2959,"xh":1.7556,"xa":1.39,"fav":"Newcastle","dog":"Aston Villa","pdog":0.2959,"pfav":0.4525,"round":"Matchday 7","time":"17:30","upset_score":[1,2],"p_upset_score":0.073,"p_dog_nolose":0.5475},{"season":"2026-27","date":"2026-10-18","home":"Bournemouth","away":"Sunderland","ph":0.3889,"pd":0.2835,"pa":0.3276,"xh":1.3858,"xa":1.254,"fav":"Bournemouth","dog":"Sunderland","pdog":0.3276,"pfav":0.3889,"round":"Matchday 7","time":"14:00","upset_score":[0,1],"p_upset_score":0.0782,"p_dog_nolose":0.6111},{"season":"2026-27","date":"2026-10-18","home":"Leeds","away":"Man United","ph":0.452,"pd":0.2639,"pa":0.284,"xh":1.6354,"xa":1.2574,"fav":"Leeds","dog":"Man United","pdog":0.284,"pfav":0.452,"round":"Matchday 7","time":"14:00","upset_score":[1,2],"p_upset_score":0.0716,"p_dog_nolose":0.548},{"season":"2026-27","date":"2026-10-18","home":"Brighton","away":"Crystal Palace","ph":0.5445,"pd":0.2465,"pa":0.209,"xh":1.8461,"xa":1.0744,"fav":"Brighton","dog":"Crystal Palace","pdog":0.209,"pfav":0.5445,"round":"Matchday 7","time":"14:00","upset_score":[1,2],"p_upset_score":0.0574,"p_dog_nolose":0.4555},{"season":"2026-27","date":"2026-10-18","home":"Nott'm Forest","away":"Arsenal","ph":0.185,"pd":0.2746,"pa":0.5403,"xh":0.8219,"xa":1.5722,"fav":"Arsenal","dog":"Nott'm Forest","pdog":0.185,"pfav":0.5403,"round":"Matchday 7","time":"16:30","upset_score":[1,0],"p_upset_score":0.0643,"p_dog_nolose":0.4597},{"season":"2026-27","date":"2026-10-19","home":"Tottenham","away":"Coventry","ph":0.6375,"pd":0.2458,"pa":0.1168,"xh":1.7368,"xa":0.6114,"fav":"Tottenham","dog":"Coventry","pdog":0.1168,"pfav":0.6375,"round":"Matchday 7","time":"20:00","upset_score":[0,1],"p_upset_score":0.0492,"p_dog_nolose":0.3625}],"big_hist":[{"season":"2019-20","date":"2019-09-14","home":"Norwich","away":"Man City","ph":0.0246,"pd":0.0819,"pa":0.8935,"xh":0.4708,"xa":3.275,"fav":"Man City","dog":"Norwich","pdog":0.0246,"pfav":0.8935,"hg":3,"ag":2,"res":"dog"},{"season":"2022-23","date":"2022-10-22","home":"Nott'm Forest","away":"Liverpool","ph":0.0379,"pd":0.0999,"pa":0.8622,"xh":0.5641,"xa":3.0856,"fav":"Liverpool","dog":"Nott'm Forest","pdog":0.0379,"pfav":0.8622,"hg":1,"ag":0,"res":"dog"},{"season":"2019-20","date":"2019-10-06","home":"Man City","away":"Wolves","ph":0.8286,"pd":0.123,"pa":0.0484,"xh":2.8325,"xa":0.5934,"fav":"Man City","dog":"Wolves","pdog":0.0484,"pfav":0.8286,"hg":0,"ag":2,"res":"dog"},{"season":"2022-23","date":"2022-11-12","home":"Man City","away":"Brentford","ph":0.8469,"pd":0.1021,"pa":0.051,"xh":3.2649,"xa":0.7593,"fav":"Man City","dog":"Brentford","pdog":0.051,"pfav":0.8469,"hg":1,"ag":2,"res":"dog"},{"season":"2022-23","date":"2022-10-29","home":"Liverpool","away":"Leeds","ph":0.8233,"pd":0.1175,"pa":0.0592,"xh":3.0391,"xa":0.7539,"fav":"Liverpool","dog":"Leeds","pdog":0.0592,"pfav":0.8233,"hg":1,"ag":2,"res":"dog"},{"season":"2021-22","date":"2021-10-30","home":"Man City","away":"Crystal Palace","ph":0.813,"pd":0.1276,"pa":0.0594,"xh":2.7427,"xa":0.631,"fav":"Man City","dog":"Crystal Palace","pdog":0.0594,"pfav":0.813,"hg":0,"ag":2,"res":"dog"},{"season":"2020-21","date":"2021-04-03","home":"Chelsea","away":"West Brom","ph":0.7839,"pd":0.1525,"pa":0.0636,"xh":2.3917,"xa":0.5411,"fav":"Chelsea","dog":"West Brom","pdog":0.0636,"pfav":0.7839,"hg":2,"ag":5,"res":"dog"},{"season":"2020-21","date":"2021-04-10","home":"Man City","away":"Leeds","ph":0.8043,"pd":0.1248,"pa":0.071,"xh":2.9873,"xa":0.8272,"fav":"Man City","dog":"Leeds","pdog":0.071,"pfav":0.8043,"hg":1,"ag":2,"res":"dog"},{"season":"2020-21","date":"2021-03-07","home":"Liverpool","away":"Fulham","ph":0.7584,"pd":0.1661,"pa":0.0755,"xh":2.3186,"xa":0.5981,"fav":"Liverpool","dog":"Fulham","pdog":0.0755,"pfav":0.7584,"hg":0,"ag":1,"res":"dog"},{"season":"2021-22","date":"2021-11-06","home":"Brentford","away":"Norwich","ph":0.7323,"pd":0.1879,"pa":0.0798,"xh":2.0213,"xa":0.5043,"fav":"Brentford","dog":"Norwich","pdog":0.0798,"pfav":0.7323,"hg":1,"ag":2,"res":"dog"}],"cur":[{"season":"2026-27","date":"2026-08-21","home":"Arsenal","away":"Coventry","ph":0.7712,"pd":0.1626,"pa":0.0662,"xh":2.4051,"xa":0.5887,"fav":"Arsenal","dog":"Coventry","pdog":0.0662,"pfav":0.7712,"hg":3,"ag":0,"res":"fav"},{"season":"2026-27","date":"2026-08-22","home":"Hull","away":"Man United","ph":0.2475,"pd":0.2604,"pa":0.4921,"xh":1.1398,"xa":1.6879,"fav":"Man United","dog":"Hull","pdog":0.2475,"pfav":0.4921,"hg":2,"ag":0,"res":"dog"},{"season":"2026-27","date":"2026-08-22","home":"Ipswich","away":"Sunderland","ph":0.1321,"pd":0.2203,"pa":0.6475,"xh":0.8029,"xa":2.0105,"fav":"Sunderland","dog":"Ipswich","pdog":0.1321,"pfav":0.6475,"hg":2,"ag":1,"res":"dog"},{"season":"2026-27","date":"2026-08-22","home":"Nott'm Forest","away":"Leeds","ph":0.3531,"pd":0.274,"pa":0.373,"xh":1.3716,"xa":1.4153,"fav":"Leeds","dog":"Nott'm Forest","pdog":0.3531,"pfav":0.373,"hg":0,"ag":1,"res":"fav"},{"season":"2026-27","date":"2026-08-22","home":"Everton","away":"Crystal Palace","ph":0.4017,"pd":0.3083,"pa":0.29,"xh":1.2337,"xa":1.0094,"fav":"Everton","dog":"Crystal Palace","pdog":0.29,"pfav":0.4017,"hg":2,"ag":0,"res":"fav"},{"season":"2026-27","date":"2026-08-22","home":"Brentford","away":"Tottenham","ph":0.4925,"pd":0.243,"pa":0.2645,"xh":1.8702,"xa":1.3307,"fav":"Brentford","dog":"Tottenham","pdog":0.2645,"pfav":0.4925,"hg":3,"ag":0,"res":"fav"},{"season":"2026-27","date":"2026-08-23","home":"Man City","away":"Bournemouth","ph":0.6414,"pd":0.2116,"pa":0.147,"xh":2.1536,"xa":0.948,"fav":"Man City","dog":"Bournemouth","pdog":0.147,"pfav":0.6414,"hg":2,"ag":1,"res":"fav"},{"season":"2026-27","date":"2026-08-23","home":"Brighton","away":"Aston Villa","ph":0.4048,"pd":0.2671,"pa":0.3282,"xh":1.5311,"xa":1.3596,"fav":"Brighton","dog":"Aston Villa","pdog":0.3282,"pfav":0.4048,"hg":4,"ag":0,"res":"fav"},{"season":"2026-27","date":"2026-08-23","home":"Newcastle","away":"Liverpool","ph":0.3635,"pd":0.2458,"pa":0.3907,"xh":1.6344,"xa":1.6993,"fav":"Liverpool","dog":"Newcastle","pdog":0.3635,"pfav":0.3907,"hg":2,"ag":2,"res":"draw"},{"season":"2026-27","date":"2026-08-24","home":"Fulham","away":"Chelsea","ph":0.3706,"pd":0.2759,"pa":0.3535,"xh":1.3814,"xa":1.3443,"fav":"Fulham","dog":"Chelsea","pdog":0.3535,"pfav":0.3706,"hg":2,"ag":3,"res":"dog"},{"season":"2026-27","date":"2026-08-28","home":"Crystal Palace","away":"Man City","ph":0.1843,"pd":0.2478,"pa":0.568,"xh":0.9294,"xa":1.7905,"fav":"Man City","dog":"Crystal Palace","pdog":0.1843,"pfav":0.568,"hg":1,"ag":4,"res":"fav"},{"season":"2026-27","date":"2026-08-29","home":"Liverpool","away":"Nott'm Forest","ph":0.5651,"pd":0.2327,"pa":0.2022,"xh":1.9688,"xa":1.1103,"fav":"Liverpool","dog":"Nott'm Forest","pdog":0.2022,"pfav":0.5651,"hg":2,"ag":2,"res":"draw"},{"season":"2026-27","date":"2026-08-29","home":"Bournemouth","away":"Everton","ph":0.4523,"pd":0.2842,"pa":0.2635,"xh":1.4417,"xa":1.0437,"fav":"Bournemouth","dog":"Everton","pdog":0.2635,"pfav":0.4523,"hg":1,"ag":1,"res":"draw"},{"season":"2026-27","date":"2026-08-29","home":"Coventry","away":"Hull","ph":0.1376,"pd":0.2475,"pa":0.6149,"xh":0.6987,"xa":1.7368,"fav":"Hull","dog":"Coventry","pdog":0.1376,"pfav":0.6149,"hg":0,"ag":1,"res":"fav"},{"season":"2026-27","date":"2026-08-29","home":"Tottenham","away":"Newcastle","ph":0.3432,"pd":0.2472,"pa":0.4097,"xh":1.5512,"xa":1.7082,"fav":"Newcastle","dog":"Tottenham","pdog":0.3432,"pfav":0.4097,"hg":0,"ag":2,"res":"fav"},{"season":"2026-27","date":"2026-08-30","home":"Sunderland","away":"Fulham","ph":0.4679,"pd":0.2877,"pa":0.2444,"xh":1.4281,"xa":0.9636,"fav":"Sunderland","dog":"Fulham","pdog":0.2444,"pfav":0.4679,"hg":1,"ag":0,"res":"fav"},{"season":"2026-27","date":"2026-08-30","home":"Chelsea","away":"Brighton","ph":0.4325,"pd":0.2612,"pa":0.3062,"xh":1.6094,"xa":1.3242,"fav":"Chelsea","dog":"Brighton","pdog":0.3062,"pfav":0.4325,"hg":4,"ag":3,"res":"fav"},{"season":"2026-27","date":"2026-08-30","home":"Leeds","away":"Brentford","ph":0.465,"pd":0.258,"pa":0.2771,"xh":1.6771,"xa":1.2514,"fav":"Leeds","dog":"Brentford","pdog":0.2771,"pfav":0.465,"hg":1,"ag":1,"res":"draw"},{"season":"2026-27","date":"2026-08-30","home":"Man United","away":"Ipswich","ph":0.7201,"pd":0.1736,"pa":0.1063,"xh":2.5038,"xa":0.8862,"fav":"Man United","dog":"Ipswich","pdog":0.1063,"pfav":0.7201,"hg":5,"ag":2,"res":"fav"},{"season":"2026-27","date":"2026-08-31","home":"Aston Villa","away":"Arsenal","ph":0.2059,"pd":0.2617,"pa":0.5323,"xh":0.9531,"xa":1.6672,"fav":"Arsenal","dog":"Aston Villa","pdog":0.2059,"pfav":0.5323,"hg":0,"ag":1,"res":"fav"},{"season":"2026-27","date":"2026-09-04","home":"Ipswich","away":"Liverpool","ph":0.1259,"pd":0.1677,"pa":0.7063,"xh":1.1135,"xa":2.7168,"fav":"Liverpool","dog":"Ipswich","pdog":0.1259,"pfav":0.7063,"hg":0,"ag":2,"res":"fav"},{"season":"2026-27","date":"2026-09-05","home":"Newcastle","away":"Bournemouth","ph":0.4739,"pd":0.2518,"pa":0.2743,"xh":1.7476,"xa":1.2876,"fav":"Newcastle","dog":"Bournemouth","pdog":0.2743,"pfav":0.4739,"hg":2,"ag":2,"res":"draw"},{"season":"2026-27","date":"2026-09-05","home":"Nott'm Forest","away":"Tottenham","ph":0.4791,"pd":0.2587,"pa":0.2622,"xh":1.6831,"xa":1.1944,"fav":"Nott'm Forest","dog":"Tottenham","pdog":0.2622,"pfav":0.4791,"hg":0,"ag":0,"res":"draw"},{"season":"2026-27","date":"2026-09-05","home":"Man City","away":"Coventry","ph":0.8413,"pd":0.1209,"pa":0.0378,"xh":2.7244,"xa":0.4661,"fav":"Man City","dog":"Coventry","pdog":0.0378,"pfav":0.8413,"hg":1,"ag":0,"res":"fav"},{"season":"2026-27","date":"2026-09-05","home":"Brighton","away":"Leeds","ph":0.4009,"pd":0.269,"pa":0.3301,"xh":1.4946,"xa":1.3374,"fav":"Brighton","dog":"Leeds","pdog":0.3301,"pfav":0.4009,"hg":1,"ag":1,"res":"draw"},{"season":"2026-27","date":"2026-09-05","home":"Brentford","away":"Sunderland","ph":0.3837,"pd":0.2937,"pa":0.3226,"xh":1.2847,"xa":1.1577,"fav":"Brentford","dog":"Sunderland","pdog":0.3226,"pfav":0.3837,"hg":1,"ag":1,"res":"draw"},{"season":"2026-27","date":"2026-09-05","home":"Fulham","away":"Crystal Palace","ph":0.4458,"pd":0.2839,"pa":0.2703,"xh":1.439,"xa":1.0681,"fav":"Fulham","dog":"Crystal Palace","pdog":0.2703,"pfav":0.4458,"hg":2,"ag":3,"res":"dog"},{"season":"2026-27","date":"2026-09-05","home":"Hull","away":"Aston Villa","ph":0.489,"pd":0.2984,"pa":0.2126,"xh":1.3659,"xa":0.8112,"fav":"Hull","dog":"Aston Villa","pdog":0.2126,"pfav":0.489,"hg":0,"ag":0,"res":"draw"},{"season":"2026-27","date":"2026-09-06","home":"Everton","away":"Man United","ph":0.3489,"pd":0.2894,"pa":0.3617,"xh":1.2443,"xa":1.2713,"fav":"Man United","dog":"Everton","pdog":0.3489,"pfav":0.3617,"hg":2,"ag":2,"res":"draw"},{"season":"2026-27","date":"2026-09-06","home":"Arsenal","away":"Chelsea","ph":0.6398,"pd":0.2194,"pa":0.1407,"xh":2.0276,"xa":0.8506,"fav":"Arsenal","dog":"Chelsea","pdog":0.1407,"pfav":0.6398,"hg":2,"ag":1,"res":"fav"},{"season":"2026-27","date":"2026-09-12","home":"Crystal Palace","away":"Ipswich","ph":0.6311,"pd":0.2172,"pa":0.1517,"xh":2.114,"xa":0.9551,"fav":"Crystal Palace","dog":"Ipswich","pdog":0.1517,"pfav":0.6311,"hg":2,"ag":3,"res":"dog"},{"season":"2026-27","date":"2026-09-12","home":"Liverpool","away":"Fulham","ph":0.5827,"pd":0.2282,"pa":0.1891,"xh":2.0446,"xa":1.0994,"fav":"Liverpool","dog":"Fulham","pdog":0.1891,"pfav":0.5827,"hg":0,"ag":0,"res":"draw"},{"season":"2026-27","date":"2026-09-12","home":"Aston Villa","away":"Nott'm Forest","ph":0.443,"pd":0.2793,"pa":0.2778,"xh":1.4998,"xa":1.1427,"fav":"Aston Villa","dog":"Nott'm Forest","pdog":0.2778,"pfav":0.443,"hg":1,"ag":2,"res":"dog"},{"season":"2026-27","date":"2026-09-12","home":"Bournemouth","away":"Brentford","ph":0.4149,"pd":0.2657,"pa":0.3194,"xh":1.5748,"xa":1.3595,"fav":"Bournemouth","dog":"Brentford","pdog":0.3194,"pfav":0.4149,"hg":2,"ag":2,"res":"draw"},{"season":"2026-27","date":"2026-09-12","home":"Chelsea","away":"Hull","ph":0.3063,"pd":0.3511,"pa":0.3425,"xh":0.8778,"xa":0.9443,"fav":"Hull","dog":"Chelsea","pdog":0.3063,"pfav":0.3425,"hg":2,"ag":2,"res":"draw"},{"season":"2026-27","date":"2026-09-12","home":"Tottenham","away":"Everton","ph":0.3801,"pd":0.2907,"pa":0.3293,"xh":1.3241,"xa":1.2166,"fav":"Tottenham","dog":"Everton","pdog":0.3293,"pfav":0.3801,"hg":0,"ag":0,"res":"draw"},{"season":"2026-27","date":"2026-09-12","home":"Sunderland","away":"Arsenal","ph":0.2189,"pd":0.3103,"pa":0.4708,"xh":0.8049,"xa":1.3023,"fav":"Arsenal","dog":"Sunderland","pdog":0.2189,"pfav":0.4708,"hg":0,"ag":2,"res":"fav"},{"season":"2026-27","date":"2026-09-13","home":"Coventry","away":"Brighton","ph":0.1671,"pd":0.2942,"pa":0.5388,"xh":0.6787,"xa":1.4222,"fav":"Brighton","dog":"Coventry","pdog":0.1671,"pfav":0.5388,"hg":0,"ag":5,"res":"fav"},{"season":"2026-27","date":"2026-09-13","home":"Man United","away":"Man City","ph":0.2457,"pd":0.2494,"pa":0.505,"xh":1.2203,"xa":1.822,"fav":"Man City","dog":"Man United","pdog":0.2457,"pfav":0.505,"hg":0,"ag":1,"res":"fav"},{"season":"2026-27","date":"2026-09-14","home":"Leeds","away":"Newcastle","ph":0.4222,"pd":0.2707,"pa":0.3071,"xh":1.5642,"xa":1.307,"fav":"Leeds","dog":"Newcastle","pdog":0.3071,"pfav":0.4222,"hg":4,"ag":1,"res":"fav"},{"season":"2026-27","date":"2026-09-18","home":"Brentford","away":"Chelsea","ph":0.4114,"pd":0.2563,"pa":0.3323,"xh":1.675,"xa":1.4904,"fav":"Brentford","dog":"Chelsea","pdog":0.3323,"pfav":0.4114,"hg":3,"ag":0,"res":"fav"},{"season":"2026-27","date":"2026-09-19","home":"Tottenham","away":"Aston Villa","ph":0.3436,"pd":0.2715,"pa":0.3849,"xh":1.4017,"xa":1.4942,"fav":"Aston Villa","dog":"Tottenham","pdog":0.3436,"pfav":0.3849,"hg":2,"ag":3,"res":"fav"},{"season":"2026-27","date":"2026-09-19","home":"Everton","away":"Ipswich","ph":0.608,"pd":0.2334,"pa":0.1586,"xh":1.9651,"xa":0.9166,"fav":"Everton","dog":"Ipswich","pdog":0.1586,"pfav":0.608,"hg":1,"ag":0,"res":"fav"},{"season":"2026-27","date":"2026-09-19","home":"Brighton","away":"Arsenal","ph":0.2065,"pd":0.2668,"pa":0.5267,"xh":0.9682,"xa":1.6704,"fav":"Arsenal","dog":"Brighton","pdog":0.2065,"pfav":0.5267,"hg":3,"ag":0,"res":"dog"},{"season":"2026-27","date":"2026-09-19","home":"Newcastle","away":"Hull","ph":0.3681,"pd":0.318,"pa":0.3139,"xh":1.1555,"xa":1.0475,"fav":"Newcastle","dog":"Hull","pdog":0.3139,"pfav":0.3681,"hg":2,"ag":1,"res":"fav"},{"season":"2026-27","date":"2026-09-19","home":"Nott'm Forest","away":"Coventry","ph":0.7497,"pd":0.19,"pa":0.0602,"xh":2.0675,"xa":0.4452,"fav":"Nott'm Forest","dog":"Coventry","pdog":0.0602,"pfav":0.7497,"hg":0,"ag":1,"res":"dog"},{"season":"2026-27","date":"2026-09-20","home":"Bournemouth","away":"Liverpool","ph":0.3247,"pd":0.2578,"pa":0.4176,"xh":1.4565,"xa":1.6721,"fav":"Liverpool","dog":"Bournemouth","pdog":0.3247,"pfav":0.4176,"hg":0,"ag":1,"res":"fav"},{"season":"2026-27","date":"2026-09-20","home":"Leeds","away":"Crystal Palace","ph":0.5227,"pd":0.2662,"pa":0.2111,"xh":1.6765,"xa":0.9908,"fav":"Leeds","dog":"Crystal Palace","pdog":0.2111,"pfav":0.5227,"hg":0,"ag":0,"res":"draw"},{"season":"2026-27","date":"2026-09-20","home":"Man City","away":"Sunderland","ph":0.5707,"pd":0.266,"pa":0.1633,"xh":1.656,"xa":0.7816,"fav":"Man City","dog":"Sunderland","pdog":0.1633,"pfav":0.5707,"hg":5,"ag":3,"res":"fav"},{"season":"2026-27","date":"2026-09-20","home":"Fulham","away":"Man United","ph":0.3476,"pd":0.2783,"pa":0.3742,"xh":1.3617,"xa":1.4201,"fav":"Man United","dog":"Fulham","pdog":0.3476,"pfav":0.3742,"hg":1,"ag":1,"res":"draw"}]};
+const pc = (x, d = 0) => (x * 100).toFixed(d) + '%';
+const level = p => p >= .33 ? 'red' : p >= .25 ? 'amber' : 'low';
+const LV = { red: 'Red warning', amber: 'Amber warning', low: 'Low risk' };
+const ICON = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5 15 14H1z" fill="currentColor" opacity=".35"/><path d="M8 5.5v4M8 11.4v.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+const fmtDate = (d, t) => { const x = new Date(d + 'T12:00:00Z'); return x.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }) + (t ? ' · ' + t + ' UK' : ''); };
+const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+// hero
+const fav = D.fav;
+document.getElementById('t-line').textContent = `Premier League matches end with the underdog winning.`;
+document.getElementById('t-sub').textContent = `${pc(fav.dog)} of ${D.n_hist.toLocaleString('en-GB')} matches since 2019/20. The favourite won ${pc(fav.fav)}; ${pc(fav.draw)} were draws.`;
+
+// levels legend
+const L = D.levels;
+document.getElementById('levels').innerHTML = [
+  ['red', '33%+', `Underdog won ${pc(L.red.dog)} of these, the favourite ${pc(L.red.fav)}. A coin toss.`],
+  ['amber', '25–33%', `Underdog won ${pc(L.amber.dog)} of these.`],
+  ['low', 'under 25%', `Underdog won ${pc(L.low.dog)} of these.`]
+].map(([k, r, t]) => `<div class="lv ${k}"><span class="tag">${LV[k]}</span><strong>${r}</strong><span>${t}</span></div>`).join('');
+
+// radar
+const rounds = [...new Set(D.upcoming.map(m => m.round))];
+const tabs = document.getElementById('tabs');
+function renderRound(rd) {
+  [...tabs.children].forEach(b => b.setAttribute('aria-selected', b.dataset.r === rd));
+  const ms = D.upcoming.filter(m => m.round === rd).sort((a, b) => b.pdog - a.pdog);
+  const ds = ms.map(m => m.date).sort();
+  const reds = ms.filter(m => level(m.pdog) === 'red').length;
+  const later = rd !== rounds[0];
+  document.getElementById('tabnote').textContent =
+    `${fmtDate(ds[0])} to ${fmtDate(ds[ds.length - 1])}. ${reds} red warning${reds === 1 ? '' : 's'}, ranked by upset chance.` +
+    (later ? ' These will shift once the previous round\'s results are in.' : '');
+  document.getElementById('list').innerHTML = ms.map(m => {
+    const lv = level(m.pdog), favHome = m.fav === m.home;
+    const pf = m.pfav, pdw = m.pd, pu = m.pdog;
+    const s = m.upset_score; const sc = `${m.home} ${s[0]}–${s[1]} ${m.away}`;
+    const xf = favHome ? m.xh : m.xa, xu = favHome ? m.xa : m.xh;
+    return `<li class="fx ${lv}">
+      <div class="fx-top"><span class="chip ${lv}">${lv === 'low' ? '' : ICON}${LV[lv]}</span><span class="when">${fmtDate(m.date, m.time)}</span></div>
+      <div class="fx-main">
+        <div class="teams"><span class="eyebrow">Underdog · ${favHome ? 'away' : 'at home'}</span><div class="dogname">${esc(m.dog)}</div>
+          <div class="vs">${favHome ? 'at' : 'vs'} <b>${esc(m.fav)}</b> (favourite)</div></div>
+        <div class="pct"><b class="num">${pc(pu)}</b><span>upset chance</span></div>
+      </div>
+      <div>
+        <div class="bar" aria-hidden="true"><i class="f" style="flex:${pf}"></i><i class="d" style="flex:${pdw}"></i><i class="u" style="flex:${pu}"></i></div>
+        <div class="barkey num"><span>${esc(m.fav)} win <b>${pc(pf)}</b></span><span>Draw <b>${pc(pdw)}</b></span><span>${esc(m.dog)} win <b>${pc(pu)}</b></span></div>
+      </div>
+      <div class="fx-foot"><span>If the upset comes: most likely <b>${esc(sc)}</b></span><span class="num">xG ${esc(m.home)} ${m.xh.toFixed(1)}–${m.xa.toFixed(1)}</span></div>
+    </li>`;
+  }).join('');
+}
+tabs.innerHTML = rounds.map(r => `<button class="tab" role="tab" data-r="${esc(r)}">${esc(r)}</button>`).join('');
+tabs.addEventListener('click', e => { const b = e.target.closest('.tab'); if (b) { renderRound(b.dataset.r); try { localStorage.setItem('ur-round', b.dataset.r) } catch (_) {} } });
+let start = rounds[0]; try { const s = localStorage.getItem('ur-round'); if (rounds.includes(s)) start = s } catch (_) {}
+renderRound(start);
+
+// shocks
+const shockRow = r => `<div class="shock"><div class="p num">${pc(r.pdog)}</div><div class="t"><div>${esc(r.home)}<span class="score">${r.hg}–${r.ag}</span>${esc(r.away)}</div><small>${fmtDate(r.date)} ${r.date.slice(0, 4)} · ${esc(r.dog)}'s pre-match win chance</small></div></div>`;
+const curUps = D.cur.filter(r => r.res === 'dog').sort((a, b) => a.pdog - b.pdog).slice(0, 5);
+document.getElementById('shock-cur').innerHTML = curUps.map(shockRow).join('');
+document.getElementById('shock-hist').innerHTML = D.big_hist.slice(0, 5).map(shockRow).join('');
+const cs = D.cur_summary;
+document.getElementById('cur-note').textContent = `A calm start: ${cs.dog} upsets in ${cs.fav + cs.draw + cs.dog} matches, where the model expected about ${Math.round(D.cur_expected_dog)}.`;
+
+// calibration chart
+document.getElementById('ev-n').textContent = D.n_hist.toLocaleString('en-GB');
+(function () {
+  const svg = document.getElementById('cal'), W = 400, H = 290, m = { l: 46, r: 12, t: 12, b: 44 };
+  const max = .45, x = v => m.l + v / max * (W - m.l - m.r), y = v => H - m.b - v / max * (H - m.t - m.b);
+  let s = '';
+  [0, .1, .2, .3, .4].forEach(v => {
+    s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/>`;
+    s += `<text x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end">${v * 100}%</text>`;
+    s += `<text x="${x(v)}" y="${H - m.b + 18}" text-anchor="middle">${v * 100}%</text>`;
+  });
+  s += `<text x="${(m.l + W - m.r) / 2}" y="${H - 4}" text-anchor="middle">Predicted underdog win chance</text>`;
+  s += `<text transform="translate(11 ${(m.t + H - m.b) / 2}) rotate(-90)" text-anchor="middle">Actually won</text>`;
+  s += `<line x1="${x(0)}" y1="${y(0)}" x2="${x(max)}" y2="${y(max)}" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5 5"/>`;
+  const nmax = Math.max(...D.cal.map(c => c.n));
+  D.cal.forEach((c, i) => {
+    const r = 5 + 7 * Math.sqrt(c.n / nmax), lv = level(c.pred);
+    s += `<g class="pt" data-i="${i}"><circle cx="${x(c.pred)}" cy="${y(c.act)}" r="${r + 10}" fill="transparent"/>` +
+      `<circle cx="${x(c.pred)}" cy="${y(c.act)}" r="${r}" fill="var(--${lv})" stroke="var(--surface)" stroke-width="2"/></g>`;
+  });
+  svg.innerHTML = s;
+  const tip = document.getElementById('tip'), wrap = document.getElementById('cal-wrap');
+  svg.addEventListener('pointermove', e => {
+    const g = e.target.closest('.pt'); if (!g) { tip.hidden = true; return; }
+    const c = D.cal[+g.dataset.i];
+    const lab = c.hi >= 1 ? `${c.lo * 100}%+` : `${c.lo * 100}–${c.hi * 100}%`;
+    tip.innerHTML = `<b>Predicted ${lab}</b><br>${c.n} matches<br>Average prediction ${pc(c.pred, 1)}<br>Underdog actually won ${pc(c.act, 1)}`;
+    const b = wrap.getBoundingClientRect(); tip.hidden = false;
+    tip.style.left = Math.max(8, Math.min(e.clientX - b.left + 12, b.width - 230)) + 'px'; tip.style.top = (e.clientY - b.top - 70) + 'px';
+  });
+  svg.addEventListener('pointerleave', () => tip.hidden = true);
+})();
+
+document.getElementById('lvtbl').innerHTML = ['red', 'amber', 'low'].map(k => {
+  const v = L[k];
+  return `<tr><td><span class="dot" style="background:var(--${k})"></span>${LV[k]}</td><td>${v.n.toLocaleString('en-GB')} <span style="color:var(--muted)">(${pc(v.share)})</span></td><td><b>${pc(v.dog)}</b></td><td>${pc(v.draw)}</td><td>${pc(v.fav)}</td></tr>`;
+}).join('');
+
+const M = D.metrics_hist;
+document.getElementById('stats').innerHTML = [
+  [pc(M.acc), 'result called right (favourite wins). Always picking the home side: ' + pc(D.base.home) + '.'],
+  [M.rps.toFixed(3), 'ranked probability score, lower is better. Using league-average odds every game: ' + D.rps_base.toFixed(3) + '.'],
+  [pc(L.red.share), 'of matches get a red warning, roughly one or two per round.']
+].map(([b, t]) => `<div class="stat"><b class="num">${b}</b><span>${t}</span></div>`).join('');
+</script>
+
+</body>
+</html>

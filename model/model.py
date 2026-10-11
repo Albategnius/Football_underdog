@@ -46,7 +46,11 @@ def load():
         ms = json.load(open(f))['matches']
         teams_by_season[season] = {norm(x['team1']) for x in ms}
         for x in ms:
-            rec = dict(season=season, date=x['date'], round=x.get('round', ''),
+            date = x['date']
+            # openfootball dates the July 2020 post-COVID restart matches as July 2019
+            if season == '2019-20' and date.startswith('2019-07'):
+                date = '2020' + date[4:]
+            rec = dict(season=season, date=date, round=x.get('round', ''),
                        home=norm(x['team1']), away=norm(x['team2']), time=x.get('time', ''))
             s = ft(x)
             if s:

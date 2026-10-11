@@ -6,9 +6,9 @@ Premier League fixtures ranked by the underdog's chance of winning outright, wit
 
 | Warning | Underdog win chance | What happened in backtest (2,660 matches, 2019/20–2025/26) |
 |---|---|---|
-| Red | 33%+ | Underdog won 38%, favourite won 38% |
-| Amber | 25–33% | Underdog won 31% |
-| Low | under 25% | Underdog won 17% |
+| Red | 33%+ | Underdog won 39%, favourite won 38% |
+| Amber | 25–33% | Underdog won 30% |
+| Low | under 25% | Underdog won 16% |
 
 ## How it works
 
@@ -17,6 +17,14 @@ Premier League fixtures ranked by the underdog's chance of winning outright, wit
 - Promoted clubs get an estimated "promoted team" adjustment.
 - Walk-forward backtest: each match predicted with a model refit on data from before that week.
 - Backtest RPS 0.203 (league-average baseline 0.233), favourite picked correctly 52%.
+
+## Season simulation
+
+`model/season_sim.py` plays the rest of the season 10,000 times from the current table. Each run shifts every team's attack and defence rating by a random amount (sigma 0.22) so rating uncertainty is carried through. Backtested from matchday 5 in 2019/20–2025/26: mean error 8.4 points against the final table (naive points-per-game x 38: 16.1), and 81% of teams finished inside the 10–90% points range.
+
+## Data note
+
+openfootball dates the July 2020 post-COVID restart matches of 2019/20 as July 2019. `model.load()` corrects those dates; without the fix the backtest leaks future results into 2019/20.
 
 ## Rebuild
 
